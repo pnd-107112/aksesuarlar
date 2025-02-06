@@ -1,65 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Chandelier Price Scanner</title>
-    <script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script> <!-- Barcode Scanner Library -->
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #scanner { width: 100%; max-width: 400px; margin: auto; display: none; }
+        #result { margin-top: 20px; font-size: 20px; font-weight: bold; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; }
+    </style>
 </head>
 <body>
-    <h1>Chandelier Price Scanner</h1>
+
+    <h2>Scan a Barcode</h2>
+    <button id="start-btn">Start Scanning</button>
+    <button id="stop-btn" style="display:none;">Stop Scanning</button>
     <div id="scanner"></div>
-    <p>Scan a barcode to see the product details.</p>
-    <div id="result">
-        <p><strong>Product Name:</strong> <span id="product-name"></span></p>
-        <p><strong>Price:</strong> <span id="product-price"></span></p>
-    </div>
+    <p id="result">Scanned Code: <span id="barcode"></span></p>
+    <p id="product-info"></p> <!-- Product details will appear here -->
 
     <script>
-        // Initialize the barcode scanner
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: document.querySelector('#scanner'),
-                constraints: {
-                    width: 640,
-                    height: 480,
-                    facingMode: "environment" // Use the rear camera
-                },
-            },
-            decoder: {
-                readers: ["ean_reader"] // Barcode format
+        let scanner;
+        let scanning = false;
+
+        document.getElementById("start-btn").addEventListener("click", function() {
+            if (!scanning) {
+                scanner = new Html5Qrcode("scanner");
+                scanner.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    onScanSuccess,
+                    onScanError
+                );
+                scanning = true;
+                document.getElementById("scanner").style.display = "block";
+                document.getElementById("start-btn").style.display = "none";
+                document.getElementById("stop-btn").style.display = "inline-block";
             }
-        }, function (err) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            Quagga.start();
         });
 
-        // Handle barcode detection
-        Quagga.onDetected(function (result) {
-            const barcode = result.codeResult.code;
-            fetchProductDetails(barcode);
+        document.getElementById("stop-btn").addEventListener("click", function() {
+            if (scanning) {
+                scanner.stop().then(() => {
+                    scanning = false;
+                    document.getElementById("scanner").style.display = "none";
+                    document.getElementById("start-btn").style.display = "inline-block";
+                    document.getElementById("stop-btn").style.display = "none";
+                }).catch(err => console.error("Stop failed:", err));
+            }
         });
 
-        // Fetch product details from Google Sheets
-        async function fetchProductDetails(barcode) {
-            const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSYkC0NJ_meKLT8Y-oG2X48bQaUpZMjLDUz6TBcepnSaL-mvpu_NlAMJaUyA7e5TtHGeuQvs1fIl8UG/pub?output=csv";
-            const response = await fetch(sheetUrl);
-            const csvData = await response.text();
-            const rows = csvData.split('\n');
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById("barcode").innerText = decodedText;
+            fetchProductDetails(decodedText); // Fetch product info from CSV
+        }
 
-            for (let row of rows) {
-                const [sheetBarcode, productName, quantity, price] = row.split(',');
-                if (sheetBarcode.trim() === barcode) {
-                    document.getElementById('product-name').textContent = productName;
-                    document.getElementById('product-price').textContent = price;
+        function onScanError(errorMessage) {
+            console.warn("Scan error:", errorMessage);
+        }
+
+        function fetchProductDetails(barcode) {
+    fetch("product.csv")
+        .then(response => response.text())
+        .then(data => {
+            let rows = data.split("\n"); // Split by line
+            for (let i = 1; i < rows.length; i++) {
+                let cols = rows[i].split(";"); // Use semicolon (;) instead of comma (,)
+                if (cols[0].trim() === barcode.trim()) {
+                    document.getElementById("product-info").innerText = 
+                        `Ürün: ${cols[1]}, Ölçü: ${cols[2]}, Ampül: ${cols[3]}, Fiat: ${cols[5]}`;
                     return;
                 }
             }
-            alert("Product not found!");
-        }
+            document.getElementById("product-info").innerText = "Product not found!";
+        })
+        .catch(error => console.error("Error loading CSV:", error));
+}
+
     </script>
+
 </body>
 </html>
