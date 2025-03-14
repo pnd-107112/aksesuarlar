@@ -85,7 +85,7 @@
             box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.1);
         }
         #calculator input, #calculator button {
-            width: 100%;
+            width: 50%;
             padding: 10px;
             margin: 5px 0;
             border-radius: 8px;
@@ -128,8 +128,8 @@
         <!-- Hesap Makinesi Gizli Başlangıç -->
         <button id="show-calculator" class="btn-start">💰 İndirim Hesapla</button>
         <div id="calculator">
-            <input type="number" id="discount-rate" placeholder="Yüzde (%)">
-            <input type="number" id="original-price" placeholder="Fiyat (₺)">
+            <input type="number" id="discount-rate" placeholder="Yüzde gir (%)">
+            <input type="number" id="original-price" placeholder="Fiyat gir (₺)">
             <button class="btn-calculate" onclick="calculateDiscount()">Hesapla</button>
             <button class="btn-close-calc" onclick="closeCalculator()">Kapat</button>
             <p><strong>İndirimli Fiyat:</strong> <span id="discounted-price">0</span> ₺</p>
