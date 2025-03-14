@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pandora Aydınlatma AKSESUAR | Barkod Tarama</title>
-    <link rel="icon" type="image/png" href="logo.png">  <!-- Favicon (Tarayıcı ikonu) -->
+    <link rel="icon" type="" href="logo.JPG">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -25,15 +25,10 @@
             width: 100%; 
             text-align: center; 
         }
-        h2, h3 { 
+        h2 { 
             color: #333; 
             margin-bottom: 15px; 
             font-weight: 600; 
-        }
-        img { 
-            max-width: 100px; 
-            display: block; 
-            margin: 0 auto 15px; 
         }
         #scanner { 
             width: 100%; 
@@ -77,53 +72,70 @@
             display: none; 
             box-shadow: 0px 3px 8px rgba(0, 0, 0, 0.15);
         }
-        /* İndirim Hesaplama */
-        h3 {
+        #result { font-weight: bold; margin-top: 12px; font-size: 16px; }
+        #product-info { font-size: 14px; color: #555; }
+
+        /* Hesap Makinesi */
+        #calculator {
+            display: none;
             margin-top: 20px;
-            color: #333;
-            font-weight: 600;
+            padding: 15px;
+            background: #f4f4f4;
+            border-radius: 10px;
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.1);
         }
-        input {
+        #calculator input, #calculator button {
             width: 100%;
-            padding: 8px;
-            margin: 5px 0 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 14px;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            font-size: 16px;
         }
         .btn-calculate {
             background: #ff9800;
             color: white;
-            padding: 10px;
             border: none;
-            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            width: 100%;
-            margin-top: 5px;
         }
         .btn-calculate:hover {
             background: #e68900;
+        }
+        .btn-close-calc {
+            background: #777;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-close-calc:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="logo.png" alt="Pandora Aydınlatma Logo">
-        <h2>📸 Pandora Aksesuar Barkod Tarama</h2>
+        <img src="logo.JPG" alt="Pandora Aydınlatma Logo" style="max-width: 50px; display: block; margin: 0 auto 15px;">
+        <h2>📸 Pandora Aksesuar Tarama</h2>
         <button id="start-btn" class="btn-start">📷 Taramayı Başlat</button>
         <button id="stop-btn" class="btn-stop">⏹ Taramayı Durdur</button>
         <button id="reset-btn" class="btn-reset">🔄 Sıfırla</button>
         <div id="scanner"></div>
         <p id="result">Tarama Sonucu: <span id="barcode"></span></p>
+        <div class="product-container">
+            <div id="product-image"><img id="barcode-image" src="" alt="Ürün Resmi"></div>
+            <p id="product-info"></p>
+        </div>
 
-        <h3>💰 İndirim Hesaplama</h3>
-        <label>Yüzde Gir (%): </label>
-        <input type="number" id="discount-rate" placeholder="Örn: 20">
-        <label>Fiyat Gir (₺): </label>
-        <input type="number" id="original-price" placeholder="Örn: 500">
-        <button class="btn-calculate" onclick="calculateDiscount()">Hesapla</button>
-        <p><strong>İndirimli Fiyat:</strong> <span id="discounted-price">-</span> ₺</p>
+        <!-- Hesap Makinesi Gizli Başlangıç -->
+        <button id="show-calculator" class="btn-start">💰 İndirim Hesapla</button>
+        <div id="calculator">
+            <input type="number" id="discount-rate" placeholder="Yüzde (%)">
+            <input type="number" id="original-price" placeholder="Fiyat (₺)">
+            <button class="btn-calculate" onclick="calculateDiscount()">Hesapla</button>
+            <button class="btn-close-calc" onclick="closeCalculator()">Kapat</button>
+            <p><strong>İndirimli Fiyat:</strong> <span id="discounted-price">0</span> ₺</p>
+        </div>
+        <!-- Hesap Makinesi Gizli Bitiş -->
+
     </div>
 
     <script>
@@ -158,14 +170,51 @@
             }
         });
 
+        document.getElementById("reset-btn").addEventListener("click", function() {
+            document.getElementById("barcode").innerText = "";
+            document.getElementById("product-info").innerText = "";
+            document.getElementById("barcode-image").style.display = "none";
+            document.getElementById("reset-btn").style.display = "none";
+        });
+
         function onScanSuccess(decodedText, decodedResult) {
             document.getElementById("barcode").innerText = decodedText;
+            fetchProductDetails(decodedText);
+            document.getElementById("reset-btn").style.display = "inline-block";
         }
 
         function onScanError(errorMessage) {
             console.warn("Scan error:", errorMessage);
         }
 
+        function fetchProductDetails(barcode) {
+            fetch("product.csv")
+                .then(response => response.text())
+                .then(data => {
+                    let rows = data.split("\n");
+                    for (let i = 1; i < rows.length; i++) {
+                        let cols = rows[i].split(";");
+
+                        if (cols[0].trim() === barcode.trim()) {
+                            document.getElementById("product-info").innerHTML = `
+                                📦 <strong>Ürün:</strong> ${cols[1]} <br>
+                                📏 <strong>Stock</strong> ${cols[2]}adet <br>
+                                💰 <strong>Fiyat:</strong> ${cols[3]}₺ <br>
+                            `;
+
+                            let imageUrl = `${barcode}.jpg`; 
+                            document.getElementById("barcode-image").src = imageUrl;
+                            document.getElementById("barcode-image").style.display = "block";
+                            return;
+                        }
+                    }
+                    document.getElementById("product-info").innerText = "⚠ Ürün bulunamadı!";
+                    document.getElementById("barcode-image").style.display = "none";
+                })
+                .catch(error => console.error("Error loading CSV:", error));
+        }
+
+        // İndirim hesaplama
         function calculateDiscount() {
             let rate = parseFloat(document.getElementById("discount-rate").value);
             let price = parseFloat(document.getElementById("original-price").value);
@@ -178,6 +227,16 @@
             let discountedPrice = price - (price * (rate / 100));
             document.getElementById("discounted-price").innerText = discountedPrice.toFixed(2);
         }
+
+        // Hesap makinesini kapatma
+        function closeCalculator() {
+            document.getElementById("calculator").style.display = "none";
+        }
+
+        // Hesap makinesini gösterme
+        document.getElementById("show-calculator").addEventListener("click", function() {
+            document.getElementById("calculator").style.display = "block";
+        });
     </script>
 </body>
 </html>
